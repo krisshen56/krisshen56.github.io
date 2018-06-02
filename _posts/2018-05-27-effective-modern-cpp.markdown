@@ -20,7 +20,7 @@ void f(ParamType param);
 
 f(expr)
 ```
-ParamType是T和const, *(pointer), &(reference)和volatile的各種可能組合
+ParamType是T和const, *(pointer), &/&&(reference)和volatile的各種可能組合
 
 - Case 1: ParamType是pointer或reference
   expr如果有const, const會被保留, 否則傳進去f後, 會被修改而失去了const的意義
@@ -34,7 +34,7 @@ ParamType是T和const, *(pointer), &(reference)和volatile的各種可能組合
 
 套用以上rule後再做expr和ParamType的pattern matching推導出T
 
-Array和function會deacy成pointer, 只有在Case 3的情況
+當expr是array或function時, 會deacy成pointer, 除了在ParamType有reference的情況例外
 
 ### Item #2
 auto type deduction可以與template type deduction做對應, auto對應到T, param前的type宣告就是ParamType
