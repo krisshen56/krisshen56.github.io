@@ -82,3 +82,24 @@ TD<decltype(x)> xType;
 ```
 - Runtime則必須使用boost::typeindex, 因為std::type_info對cvr處理的限制
 
+---
+
+## Chapter 2 auto
+
+### Item #5
+使用auto的好處
+- 避免uninitialized variable問題
+- 較少的typing
+- 較佳的執行效率和記憶體使用量(以lambda closure轉換成std::function為例)
+- 避免錯誤的type宣告帶來不必要的轉型, 造成程式行為怪異和效能損失
+
+### Item #6
+由於"invisible" proxy type的關係, auto有可能會推導出錯誤的type, 造成意料外的結果
+
+解決方式是使用the explicitly type initializer idiom強制auto推導出需要的type
+```c++
+auto var = static_cast<T>(expr);  // T is the type you want
+```
+
+---
+
