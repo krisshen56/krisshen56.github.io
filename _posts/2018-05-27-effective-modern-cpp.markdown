@@ -103,3 +103,53 @@ auto var = static_cast<T>(expr);  // T is the type you want
 
 ---
 
+## Chapter 3 Moving to Modern C++
+
+### Item #7
+Braced initialization的好處
+- 在任何地方都可以用來初始化物件, =和()的方式在某些地方就有些限制
+
+  例如:
+  - 在class non-static data member的預設值就不能使用()
+  - 在non-copyable object中就不能使用=
+- 防止narrowing conversion和vexing parse
+- 可以直接初始化container的內容
+
+Braced initialization的缺點是, 當type的constructor有多個, 且其中一個constructor
+有使用std::initializer_list當做參數的話, 不論如何, braced initialization都會以
+std::initializer_list為優先對象
+```c++
+std::vector<int> v1(10, 20); // create 10 elements with value 20
+std::vector<int> v2{10, 20}; // create 2 elements 10, 20
+```
+總結來說, 似乎是使用**{}**來初始化物件是最佳解(雖然作者對那一派沒有特別偏好). 只要注意
+物件的constructor是否有std::initializer_list參數類型的constructor, 必要時用**()**來避免
+上述的情形發生
+
+### Item #8
+0和NULL常常都會當做null pointer來使用, 但實際上0的type是int, NULL的type依實作可能是int或是
+long. 如果遇到以下的case, 就可能會有ambiguous的情況產生
+```c++
+void f(int);
+void f(bool);
+void f(void*);
+
+f(0);       // calls f(int)
+f(NULL);    // might be ambigiuos if NULL is long
+f(nullptr); // calls f(void*)
+```
+nullptr的type是std::nullptr_t, 可以轉換成任意的pointer type. 除了可以避免上述問題外, 也可以
+讓function template在type deduction時可以推導出pointer type而不是integral type(參見書上的例子)
+
+### Item #9
+alias declaration可以完全取代typedef, 而且可以和template搭配形成alias template, 好處是可以在TMP
+時省去許多::type, typename的使用
+```c++
+// same as typedef
+using UPtrMapSS = std::unique_ptr<std::unordered_map<std::string, std::string>>; 
+// seems to be better than typedef
+using FP = void (*)(int, const std::string);
+// alias template for C++11 to mimic C++14 type traits
+template<typename T>
+using remove_const_t = typename std::remove_const<T>::type;
+```
