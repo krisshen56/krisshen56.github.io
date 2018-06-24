@@ -153,3 +153,91 @@ using FP = void (*)(int, const std::string);
 template<typename T>
 using remove_const_t = typename std::remove_const<T>::type;
 ```
+
+### Item #10
+C++98的unscoped enum定義的name,其scope是和Color同一層
+```c++
+enum Color { black, white, red }; // unscoped enum
+auto white = false;               // error
+```
+C++11的scoped enum則是如同class一樣,局限在class scope
+```c++
+enum class Color { black, white, red }; // scoped enum
+auto white = false;                     // fine
+```
+
+scoped enum是strongly typed,不像unscoped enum可以implicitly轉換成intergral type(接著再轉成float...)
+
+scoped enum預設是可以forward declaration的, unscoped enum在C++11要達成forward declaration需要指定
+underlying type
+```c++
+enum class Status;         // default underlying type is int
+enum Color: std::uint8_t;  // underlying type is std::uint8_t
+```
+
+unscoped enum比較有用的地方在於std::tuple中指定特定的field(因為implicit conversion的好處)
+```c++
+using UserInfo = std::tuple<std::string, std::string, std::size_t>;
+UserInfo uInfo;
+enum UserInfoFields { uiName, uiEmail, uiReputation };
+auto val = std::get<uiEmail>(uInfo);
+```
+
+### Item #11
+C++98避免class copyable的做法是declare copy constructor和copy assignment operator在private
+並且不提供實作. 但是如果有member function或是friend class/function不小心呼叫到, 在link time才會有
+error產生.
+
+C++11的做法是在public標記copy constructor和copy assignment operator為delete, deleted functions在public的
+原因是C++檢查function的accessibility在delete status之前.
+```c++
+class NonCopyable {
+public:
+    ...
+    NonCopyable(const NonCopyable&) = delete;
+    NonCopyable& operator=(const NonCopyable&) = delete;
+    ...
+};
+```
+delete也可以使用在non-member function和function template instantiation來禁止某些overloaded function的使用
+
+### Item #12
+overriding是derived class實作base class的virtual function以達成polymorphism的方式, 但是常常會發生沒有正確
+override的情況, 而且compiler無法去偵測到這樣的錯誤, 因為通常這種錯誤是符合語法的.
+
+C++11提供了override關鍵字, 可以使用在derived class要override的function declaration最後, compiler會幫忙抓出
+無法正確override的error.
+```c++
+class Base {
+public:
+    virtual void mf1() const;
+    virtual void mf2(int x);
+    virtual void mf3() &;
+    void mf4() const;
+};
+
+class Derived : public Base {
+    virtual void mf1() override;               // error: constness different
+    virtual void mf2(unsigned int x) override; // error: parameter different
+    virtual void mf3() && override;            // error: reference qualifier different
+    void mf4() const override;                 // error: no virtual specified in base class
+};
+```
+
+C++11的member function可以指定reference qualifier以適用不同的*this object
+```c++
+class Widget {
+public:
+    ...
+    void doWork() &;  // for *this as l-value
+    void doWork() &&; // for *this as r-value
+    ...
+};
+```
+
+### Item #13
+C++98在const_iterator的支援不夠完全, 在有些情況的使用上仍需使用iterator. 這部份在C++11對container class
+提供了cbegin, cend等的member function已經修正. 此外, C++14也提供了non member版本的cbegin, cend等的function
+讓實作template function更方便.
+
+### Item #14
