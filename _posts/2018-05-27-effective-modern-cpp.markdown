@@ -241,3 +241,42 @@ C++98在const_iterator的支援不夠完全, 在有些情況的使用上仍需�
 讓實作template function更方便.
 
 ### Item #14
+看不太懂的一個item, 作者寫了很多內容, 但看完了還是不知道到底要不要宣告function為noexcept
+
+### Item #15
+constexpr修飾variable時, 表示其值是const且在compilation time已知
+
+constexpr修飾function時, 如果其傳入的參數是constexpr object, 則其回傳的運算結果也是constexpr;如果傳入的參數的值是
+runtime才能決定, 則視為一般function
+
+C++11在constexpr function有些限制, C++14則解除了這些限制
+1. return值不能是void(因為不是literal types)
+2. 只允許單一return statement(但可以利用三元運算子?:達到if else的效果)
+3. member function隱含const的含義
+
+### Item #16
+重點就如同標題所寫的, 除非確保const member function不會被multiple threads同時引用, 請確保其具有thread safety
+
+其它談到的重點有
+- 引入mutex在data members會讓class object失去copyable, 因為mutex是moveable only type
+- mutex的成本可能比atomic貴, 所以如果只有單一variable或memory需要保護, 可以改用atomic
+
+### Item #17
+compiler產生的special member functions是inline, public, non-virtual(除非base destructor是virtual, 產生的destructor才會是virtual)
+
+C++98的規則:
+- constructor: user沒有宣告constructor
+- copy constructor/copy assignment operator: member-wise copy, 宣告copy constructor or assignment operator不會影響另一個的產生 
+
+Big three rules: 如果有宣告destructor, copy constructor或是copy assginment operator其中一個, 那麼三個都要重新定義 
+
+C++11的規則:
+- constructor: 同C++98
+- destructor : 同C++98, destructor預設是noexcept
+- copy operator/copy assignment operator: 同C++98, 但因為big three rules的關係, 自動產生另二個functions是deprecated
+如果有定義move operations, 則變成deleted狀態
+- move constructor/mov assignment operator: member-wise move, 但如果不支援實際上可能會呼叫到copy operations. move constructor和move
+assignment operator如果有定義其一, 另一個就不會自動產生. 如果有copy operations和destructor也不會自動產生
+- member function templates不影響上面的規則
+
+如果compiler產生的special member function符合需求, 可以手動宣告再加上=default

@@ -82,6 +82,15 @@ $ sudo mknod console c 5 1
 #!/bin/sh
 
 mount -t proc none /proc
+mount -t sysfs sysfs /sys
+#
+# Dynamic device node
+# 1. let kernel's devtmpfs manage it
+# 2. echo /sbin/mdev > /proc/sys/kernel/hotplug
+#    mdev -s
+#    https://git.busybox.net/busybox/plain/docs/mdev.txt
+#
+mount -t devtmpfs none /dev
 ```
 
 [busybox]: https://busybox.net/
