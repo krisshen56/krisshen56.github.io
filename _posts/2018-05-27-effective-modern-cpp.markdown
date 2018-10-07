@@ -280,3 +280,53 @@ assignment operator如果有定義其一, 另一個就不會自動產生. 如果
 - member function templates不影響上面的規則
 
 如果compiler產生的special member function符合需求, 可以手動宣告再加上=default
+
+---
+
+## Chapter 5 Rvalue References, Move Semantics, and Perfect Forwarding
+lvalue和rvalue的區別方式可以用能否對expression取address來決定, 只有lvalue expression才可以對其取address
+
+因此, 所有的parameters都是lvalue, 即使其type是rvalue reference
+```c++
+void f(Widget&& w); // the type of w is rvalue reference, but it is lvalue 
+```
+
+### Item #23
+1. 從function回傳的rvalue reference是rvalue
+2. std::move是無條件的將其argument cast成rvalue(利用1)
+3. std::forward是有條件的將其argument case成rvalue(argument是rvalue reference時)
+4. 根據3和4, std::move和std::forward只是cast, runtime不產生額外的executable code
+5. movable object不可以宣告成const, 否則會轉換成copy operations(因為move operations的參數沒有const, 只有copy operations才有)
+
+### Item #24
+universal references因為都和std::forward搭配, C++標準稱之為forwarding references.
+
+T&&成為universal references的條件
+1. 有type deduction的過程
+```c++
+void f(Widget&& param); // no type deduction, rvalue reference
+```
+2. 參數格式必須為T&&或auto&&
+```c++
+template <typename T>
+void f(std::vector<T>&& param); // not format T&&, rvalue reference
+template <typename T>
+void f(const T&& param); // format with const, rvalue reference
+```
+否則都是rvalue references
+
+### Item #25
+std::move搭配rvalue reference使用, std::forward搭配universal reference使用
+
+使用universal reference的好處除了可能可以減少不必要的object construction/destruction外, 也可以減少多個parameters時對各種不同
+lvalue/rvalue組合提供overloading functions的困擾
+
+在return by value的function中, 在最後不使用rvalue reference/universal reference的object時, 才做std::move/std::forward,
+即使object不支援move operations也沒關係, 因為rvalue reference也可以使用copy operations
+
+RVO(return value optimization)的條件:
+1. local object的type和return type相同
+2. 直接return local object(不加上額外的std::move, function call之類的東西)
+compiler會對此做copy elision, 無法做copy elison則會將local object等同std::move後做為rvalue回傳
+
+---
