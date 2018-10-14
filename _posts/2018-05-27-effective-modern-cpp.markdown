@@ -329,4 +329,42 @@ RVO(return value optimization)的條件:
 2. 直接return local object(不加上額外的std::move, function call之類的東西)
 compiler會對此做copy elision, 無法做copy elison則會將local object等同std::move後做為rvalue回傳
 
+### Item #26
+本篇是在講解overloading有使用universal reference的function可能會造成的一些問題
+由於universal reference是一個function template, 加上universal reference是可以完美match任何參數型態, 造成許多意想不到
+的結果
+1. 一般function: 呼叫的引數是非int的integral type, 根據overloading rule, 選擇的是universal reference版本, 與預期不合
+```c++
+template <typename T>
+void logAndAdd(T&& name);
+void logAndAdd(int idx);
+```
+2. constructor: 使用在constructor上更糟糕, 使用non-const lvalue構建object和derived class呼叫base class constructor都會使用universal reference版本,
+而不是compiler generated的copy/move constructor
+
+### Item #27
+本篇是探討#26的解決方案
+1. 放棄使用overloading on universal reference:
+
+   a. 將有universal reference的function和其它function用不同的name區別開來
+
+   b. 退回C++98的方式, 使用pass by const T&, 但會失去performance最佳化
+
+   c. 使用pass by value, 相較於universal reference只有多一個move operation, 但在string literal to string的case則會多一個temporary object的產生和銷毀
+2. 仍舊使用overloading on universal reference:
+
+   a. 利用tag dispatch的技巧, 使用type traits根據type導至不同的implementation function
+```c++
+template <typename T>
+void logAndAdd(T&& name)
+{
+    logAndAddImpl(std::forward<T>(name), std::is_intergal<std::remove_reference_t<T>::type>());
+}
+template <typename T>
+void logAndAddImpl(T&& name, std::false_type);
+void logAndAddImpl(int idx, std::true_type);
+```
+   b. 使用tag dispatch無法解決constructor的case, 因為compiler generated function會因為normal function優先於template instanced function而繞過了
+      tag dispatch的機制, 所以必須使用std::enable_if來限定universal reference template可以instanciate的type
+
 ---
