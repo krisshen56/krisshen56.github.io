@@ -437,3 +437,38 @@ auto f =
 ```
 
 ---
+
+## Chapter 7 The Concurrency API
+
+### Item #35
+使用task based(std::async)的方式相較於thread based(std::thread)可以把thread exhausion, oversubscription, load balancing
+等問題留給standard library處理
+
+### Item #36
+std::async有二種launch policy, 預設是這二種policy的組合
+1. std::launch::async: 真的create thread來執行task(**asynchronously**)
+2. std::launch::deferred: 當呼叫get or wait時才執行task(**synchronously**)
+
+在使用std::async的wait loop中要小心避免造成endless loop, 必須考慮task是否被defer execution的情形
+```c++
+auto fut = std::async(f);
+if (fut.wait_for(0s) == std::future_status::deferred)
+{
+    // running synchronously
+    ...
+}
+else
+{
+    // running asynchronously
+    while (fut.wait_for(100ms) != std::future_status::ready)
+    {
+        // task is not finished
+        ...
+    }
+    // task is finished
+    ...
+}
+```
+
+---
+
