@@ -367,4 +367,73 @@ void logAndAddImpl(int idx, std::true_type);
    b. 使用tag dispatch無法解決constructor的case, 因為compiler generated function會因為normal function優先於template instanced function而繞過了
       tag dispatch的機制, 所以必須使用std::enable_if來限定universal reference template可以instanciate的type
 
+### Item #28
+本篇是對universal reference的正式解釋, #24雖然不是正確的解釋, 但在概念上相對來說比較容易理解
+universal reference實際上仍然是rvalue reference, 只是符合以下二種情況
+- 有type deduction區分lvalues和rvalues
+- 可能發生reference collapsing
+
+reference collapsing的規則很簡單, 只要前後之一的reference是lvalue reference, 結果就是lvalue reference, 否則才會是rvalue reference
+
+reference collapsing發生的四種contexts:
+- template instantiation
+- auto type generation
+- typedef and alias declaration
+- decltype
+
+### Item #29
+C++11引入了move operations, 可以減少copy operations增進performance, 但是move operations不是萬靈丹, 有些情況下並不會發生效用
+- object不提供move operations
+- 就算了用move也沒有比copy快多少, 例如std::array和SOO情況下的std::string
+- 需要no exception的move operations確沒有宣告成noexcept
+- source object是lvalue(隨便move lvalue不是件好事, 除非確定此lvalue在move後不再使用)
+
+---
+
+## Chapter 6 Lambda Expressions
+lambda expression產生的object稱為closure, 其type為closure class, 每個lambda expression的closure class都是唯一的
+
+### Item 31
+by reference capture要注意的是reference的object可能在closure引用時失效造成的dangling reference問題
+
+by value capture要注意的有
+- pointer被capture, 可能會有dangling pointer問題
+- static storage object被capture, 在closure引用時可能已經不是當時capture的值
+
+在class的member function內capture member variable by value
+- 宣告一個local variable, 將member variable copy至local variable, 再capture此local variable
+- 使用C++14的generalized lambda capture
+
+### Item 32
+C++14引入了init capture(又稱為generalized lambda capture)解決了C++11無法capture by move的限制
+```c++
+auto pw = std::make_unique<Widget>();
+...
+auto func = [pw = std::move(pw)]
+            {...}
+```
+等號左邊和大括號內的pw是closure內的data member, 等號右邊的pw則是屬於lambda expression定義時的scope
+
+C++11的做法有二種:
+1. 改用functor
+2. 利用std::bind, 將要move的object傳至std::bind當做lambda expression的參數
+```c++
+std::bind([](const std::unique<Widget>& pw) {
+                ...
+            },
+            std::make_unique<Widget>());
+```
+
+### Item 33
+C++14有了generic lambda, lambda expression的參數可以使用auto, 對應的實作就是functor的operator()變成了template function
+
+如果lambda expression的參數想要使用perfect forwarding, 參數要宣告成auto&&, 套用的std::forward則是需要decltype的幫忙
+```c++
+auto f =
+    [](auto&& param)
+    {
+        return func(normalize(std::forward<decltype(param)>(param)));
+    };
+```
+
 ---
