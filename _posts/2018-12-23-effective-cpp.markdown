@@ -15,9 +15,10 @@ categories: c++
 可以例外的在private help function使用assignment的方式來初始化這些data members.
 C++11新增了[non-static member initializer][], 我想應該是可以取代掉這個private help function的功能.
 
-[non-static member initializer]: http://www.stroustrup.com/C++11FAQ.html#member-init
 2. 每個translation unit定義的non-local static object, 其初始化的順序是undefined的, 所以直接引用可能會使用到沒有初始化的object.
 解決方式是類似singleton pattern, 使用static function回傳local static object的reference
+
+[non-static member initializer]: http://www.stroustrup.com/C++11FAQ.html#member-init
 
 ---
 
