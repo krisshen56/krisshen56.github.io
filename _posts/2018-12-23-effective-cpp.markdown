@@ -140,3 +140,70 @@ void swap(Widget<T>& a, Widget<T>& b)
 
 最後, member function的swap除了提供較佳的執行較率外, non-throwing也是一般swap無法提供的(因為copy operations可能throw exceptions),
 利用built-in types(ex. pointer)不會throw exceptions的特點, 將可以達到此一要求.
+
+---
+
+## Chapter 5 Implementations
+
+### Item #26 Postpone variable definitions as long as possible
+
+遵守這個item的守則讓人很直覺的把迴圈裡的變數定義在迴圈的大括號區塊內, 但書上提到了如果變數的assignment operator的cost比constructor +
+destructor少很多且又有效能上的考量的話, 就可以把此變數放在迴圈之外.
+
+### Item #27 Minimize casting
+
+雖然C-style的casting仍然在C++有支援, 但coding時還是以C++的casting語法為主:
+- const_cast: 將const object轉成non-const object
+- dynamic_cast: 唯一C-style casting不支援的轉型, 將pointer to base class object轉成pointer to derived class object. 對效能有極度影響.
+- reinterpret_case: low-level轉型, 例如pointer轉成int, 具不可移植性.
+- static_cast: 其它強制轉型, 例如int轉double, non-const object轉const object.
+  static_cast也可用於pointer-to-base到pointer-to-derived的轉型, 和dynamic_cast相較, dynamic_cast轉失敗會回傳nullptr, 但static_cast不會.
+
+書上提到, pb可能不等於&d, 會根據C++編譯器實作而有所不同, 但在Linux下的GCC和Clang試了結果都一樣, 即使加了virtual functions在class裡頭.
+```c++
+class Base { ... };
+class Derived : public Base { ... };
+Derived d;
+Base *pb = &d;
+```
+Stackoverflow上也有篇[文章](https://stackoverflow.com/questions/14776469/more-than-1-address-for-derived-class-object)詢問這個問題
+
+### Item #29 Strive for exception-safe code
+
+Exception-safe的條件有二:
+1. Leak no resources: 遵守RAII, 將resource以object封裝, 利用constructor和destructor來確保沒有resource leak的問題.
+2. Don't allow data structures to become corrupted: 當發生exceptions時, object內部的data仍是可正常使用的狀態.
+
+只要能提供以下其中一種gurantee的function都可以稱之為exception safe function:
+1. the basic guarantee: 當exceptions發生時, 只保證object內的data是正常可使用的狀態, 至於是什麼狀態, 則無法直接得知
+2. the strong guarantee: object內的data狀態只會有二種可能. 有exceptions發生時, 狀態回到calling function前, 沒有exceptions發生則是成功執行function後的狀態.
+   通常使用copy-and-swap的技巧來達成.
+3. the nothrow guarantee: 是最難達到的一種exception safe, 只使用built-in types和其它nothrow operations來達成no exception.
+
+exception specification的語法在C++11有變化, 請參考Modern Effective C++的Item#14
+
+### Item #30 Understand the ins and outs of inlining
+
+inline只是向compiler提出的一種要求, 至於compiler要不要將function inline則是取決於:
+1. function的複雜度: 有迴圈或遞迴的就不會inline
+2. 是不是virtual function: runtime時才能決定要呼叫那個virtual function, 所以無法在compile time時在call site inline function
+
+當使用pointer to function的方式呼叫function時, 該function也不會在call site做inline, 原因也是runtime time才能決定實際要呼叫的function
+```c++
+inline void f() { ... }
+void (*pf)() = f; // take address of function, compiler will generate
+                  // outlined function body
+...
+pf();             // will not inline f here
+```
+
+### Item #31 Minimize compilaton dependencies between files
+
+要減少compilation dependencies的準則就是盡可能的把dependencies on definitions改成dependencies on declarations
+- 使用handle class: 也就是所謂的pimpl pattern
+- 使用interface class: 利用pure virtual class定義出提供的member function interface讓client使用,
+client利用factory function來取得concrete class的object pointer或reference
+
+一般簡單的應用準則就是使用forward declaration, 利用pointer or reference to object來操作object提供的operations.
+特別的是, function declaration的paramters or return type是class type時, 即使使用forward declaration,
+並無限制此class type要是pointer or reference.
