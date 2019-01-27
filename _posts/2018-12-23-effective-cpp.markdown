@@ -207,3 +207,26 @@ client利用factory function來取得concrete class的object pointer或reference
 一般簡單的應用準則就是使用forward declaration, 利用pointer or reference to object來操作object提供的operations.
 特別的是, function declaration的paramters or return type是class type時, 即使使用forward declaration,
 並無限制此class type要是pointer or reference.
+
+---
+
+## Chapter 6 Inheritance and Object-Oriented Design
+
+### Item #33 Avoid hiding inherited names
+
+1. base class如果有overloaded functions, derived class即使只有redefine其中的virtual function, 其它同名的functions一樣會被hiding,
+解決方式是在derived class的定義中使用using declarations來解決visibility問題.
+2. 書上提到對於public inheritance要特別小心這種hiding, 因為會破壞is-a relationship的原則
+
+### Item #34 Differentiate between inheritance of interface and inheritance of implementation
+
+使用public inheritance基本上就是繼承了base class所定義的function interface, 但是function implementation的繼承與否則和function
+的宣告有關:
+- pure virtual function: 只繼承了function interface
+- simple virtual function: 繼承了function interface, 並提供了default implementation.
+  為了避免之後新增的derived class發生不該繼承default implementation的非預期行為, 應將base class的inteface function宣告為pure virtual function
+- non-virtual function: 同時繼承了function interface和implementation
+
+如果base class有pure virtual function, 那麼derived class就必須在定義中宣告此virtual function並提供實作, 即使base class的pure virtual function
+有提供實作.
+
