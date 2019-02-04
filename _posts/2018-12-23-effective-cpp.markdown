@@ -230,3 +230,39 @@ client利用factory function來取得concrete class的object pointer或reference
 如果base class有pure virtual function, 那麼derived class就必須在定義中宣告此virtual function並提供實作, 即使base class的pure virtual function
 有提供實作.
 
+### Item #35 Consider alternatives to virtual functions
+
+就是使用desing patterns中的template method pattern(NVI idiom)和strategy pattern去減少virtual functions的overhead
+
+### Item #37 Never redefine a function's inherited default parameter value
+
+如果base class和derived class的virtual function有不同的default parameter value, runtime時就會發生呼叫derived class的function,
+但確使用base class的default parameter value, 原因是default parameter value是statically bound(compile time就決定了).
+
+### Item #38 Model "has-a" or "is implemented-in-terms-of" through composition
+
+其實這個item和Head First Design Patterns中的多用合成少用繼承有相同的概念, 有些implementation domain的問題很容易誤解成是"is a"的關係
+- application domain: "has a", 較直覺, 例如Person has a name
+- implementation domain: "is implemented-in-terms-of", 較抽象, 例如Set is implemented in terms of a list
+
+### Item #39 Use private inheritance judiciously
+
+Private inheritance的意義是繼承了implementation, 但捨棄了interface, 等同於"is implemented-in-terms-of"的概念.
+
+如果可以用composition來達成"is implemented-in-terms-of"的概念, 就使用composition.
+使用private inheritance只有在有以下需求時:
+- access base class的members
+- override base class的virtual functions
+
+即使有上述需求, 也可以透過composition + public inheritance的組合達成
+
+另一個使用private inheritance的場合是為了達成EBO(empty base optimization).
+
+### Item #40 Use multiple inheritance judiciously
+
+多重繼承的一個主要問題是繼承的class hierarchy形成diamond結構時, base class的data members會有多份的問題產生.
+雖然這可以使用virtual繼承解決, 但是virtual繼承除了影響performance外, 初始化virtual base class的規則也很複雜.
+作者的結論是儘量不要用, 要用的話也不要定義data members在virtual base class.
+
+合理的使用多重繼承原則是public繼承interface class(無data members), private繼承helper class做implementation使用.
+個人認為只要照著Java或C#的多重繼承只能使用在interface上就不會有太大問題.
