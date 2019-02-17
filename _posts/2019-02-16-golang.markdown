@@ -1,0 +1,87 @@
+---
+layout: post
+title:  "Notes on The Go Programming Language"
+date:   2019-02-16 22:00:00 +0800
+categories: golang
+---
+這本書是2017年去天津出差時在書局看到便宜的英文版就帶回來了, 紙質當然比不上Pearson的版本, 不過內容一樣就不用計較這些了.
+
+工欲善其事, 必先利其器. 要學習golang, 首先要裝好go tool和好用的vim plugin "vim-go".
+
+#### Installing go tool
+在golang[官網](https://golang.org/dl/)下載後解壓至/usr/local就完成了.
+```bash
+sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
+```
+
+#### vim-go commands
+vim-go其實算是一個懶人包的plugin, 它集合了各種golang的小工具, 所以第一次使用前要先安裝這些小工具.
+`:GoInstallBinaries`會從網路下載小工具的source code至GOPATH, 並將其編譯成binary供之後使用.
+
+---
+
+### Chapter 1 Tutorial
+本書作者之一的Kernighan也是The C Programming Language的作者, 所以第一章的風格就如同K&R C一樣,
+快速將golang介紹一遍, 讓人可以很快上手.
+
+#### [1.1] Hello, World
+golang程式碼的架構由上至下可以分成三部份:
+- package declarations
+- import declarations
+- other declarations(functions, variables, consts, types...)
+
+屬於同一個package的source code都放在同一個資料夾. main是一個特殊的package name,
+表示此package會組成一個獨立的執行檔, 而不是函式庫.
+
+本節提到的一些go tool使用, 其vim-go的對照如下:
+- go run    => `:GoRun`
+- gofmt     => `:GoFmt`
+- goimports => `:GoImports`
+
+---
+
+### Chapter 2 Program Structure
+
+#### [2.6] Packages and Files
+import path代表了package存放的資料夾位置, *import "gopl.io/ch2/tempconv"*表示package tempconv
+存放在GOPATH/src/gopl.io/ch2/tempconv.
+
+在package裡, 首字大寫的names是exported的, 可以被其它外部的package引用.
+
+golang不允許unused package被import, 因此可以利用`:GoImports`去自動管理import packages的增減.
+
+init function只能用來做package initialization, 無法被呼叫或引用.
+```go
+// package initialization for package level variables
+func init() {
+    ...
+}
+```
+
+gopl.io/ch2/popcount中的init function所做的事是預先計算0~255的population count, 原理是N和1
+先做bit and得到LSB的popcount, 再將N向右shift 1個bit, 剩下的popcount剛好是之前計算過的N/2的popcount.
+
+---
+
+### Chapter 10 Packages and the Go Tool
+
+#### [10.4] Import Declarations
+multiple imports通常都以下面方式呈現:
+```go
+import (
+    "fmt"
+    "os"
+)
+//
+// which is equivalent to:
+// import "fmt"
+// import "os"
+//
+```
+renaming import可以避免不同import path但是同package name造成的conflicts
+```go
+import (
+    "crypto/rand"
+    mrand "math/rand"
+)
+```

@@ -1,0 +1,51 @@
+---
+layout: post
+title:  "Using vim 8"
+date:   2019-02-17 09:20:00 +0800
+categories: vim
+---
+## Building vim 8 from source
+在building之前, 請先確認ubuntu上已經有安裝python3-dev, 否則產生出來的vim會沒有python3 support.
+Vim 8的source code可以從[vim的github](https://github.com/vim/vim/releases)下載, building方式如下:
+```bash
+./configure --prefix=$HOME/Software/vim-8.1 --enable-python3interp=yes
+make -j4 install
+```
+
+Building完之後使用update-alternatives將/usr/bin/vim指向新產生的vim-8.1
+
+```bash
+sudo update-alternatives --install /usr/bin/vim \
+    vim $HOME/Software/vim-8.1/bin/vim 60
+```
+
+為了避免不必要的問題, 請將vim-8.1裡的share/vim/vim81/vimrc_example.vim複製一份到家目錄當做.vimrc
+
+## Vim plugin Manager
+使用的plugin manager是[vim-plug](https://github.com/junegunn/vim-plug), 安裝方式如下:
+
+```bash
+curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+```
+
+編輯.vimrc, 如以下方式加入plugin的github專案名稱, 存檔並重新載入.vimrc後, `:PlugInstall`就會自動安裝plugins 
+
+```vim
+call plug#begin('~/.vim/plugged')
+" use Plug 'XXX' to add more plugins here
+Plug 'itchyny/lightline.vim'
+call plug#end()
+```
+
+## Various plugins
+### YouCompleteMe (YCM)
+[YouCompleteMe](https://github.com/Valloric/YouCompleteMe)是讓vim擁有和IDE一樣具有自動完成的超強plugin,
+在好幾年前還是一個很難安裝的plugin, 不過現在已經簡化到一個python script就可以完成的工作. 要注意的是,
+YCM需要cmake3, 如果cmake的版本太舊, 就會看到建置錯誤. YCM支援許多programming languages, 不過我只需要
+C/C++和golang, 所以建置方式如下:
+
+```bash
+cd ~/.vim/plugged/YouCompleteMe
+python3 install.py --clang-completer --go-completer
+```
