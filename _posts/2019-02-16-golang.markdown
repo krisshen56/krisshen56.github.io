@@ -145,6 +145,29 @@ gopl.io/ch2/popcount中的init function所做的事是預先計算0~255的popula
 
 ---
 
+### Chapter 3 Basic Data Types
+
+#### [3.1] Integers
+- int和uint實際的data size是32 bits or 64bits視compiler/platform決定.
+- rune是int32的alias, byte是uint8的alias
+- ^也可以當做unary operator使用, `^x`其效果等同於C/C++的`~x`(bitwise NOT).
+  &^則是bit clear operator, `x &^ y`其效果等同於C/C++的`x & ~y`.
+- 54頁的下面解釋了為什麼int會比uint常使用的原因, 即使資料的值沒有負數
+- golang不允許implicit conversion, 所以binary operator的二邊不同type會無法compile.
+- fmt.Printf的format specifier, #和[1]的特殊意義.
+- rune literal是以'(單引號)包住的character
+
+#### [3.2] Floating-Point Numbers
+- 因為精度的關係, 書上建議使用float64而不是float32.
+- 任何和NaN做比較的結果都是false(包括NaN和自己互相比較)
+- 範例的數學推導如下:
+  - 2D => 3D: (0~cells)對應到(-xyrange/2, xyrange/2), 因此i / cells = (x + xyrange / 2) / xyrange,
+    所以x = xyrange * (i / cells - 0.5)
+  - 3D => 2D: 假設x-axis和cx-axis有angle度夾角, y-axis和cx-axis的夾角亦同, 投影後的原點在畫布中央,
+    xyrange對應到width / 2(也就是xyscale = width / (2 * xyrange)), 所以x = width / 2 + (x * cos(angle) - y * cos(angle)) * xyscale
+
+---
+
 ### Chapter 4 Composite Types
 
 #### [4.1] Arrays
@@ -157,6 +180,75 @@ q := [...]int{1, 2, 3, 4}
 r := [...]int{99: -1}
 ```
 如果二個array的size和element type相同, 可以使用==和!=做element-wise比較.
+
+golang的array和C/C++不同, 當做function parameter時不是reference type.
+
+#### [4.2] Slices
+slice可以想成是具了三個成員的struct, *data*指向underlying array的element,
+*len*則是slice的長度, *cap*則是slice可以延伸的最大長度(受限於underlying array的大小).
+因此, slice算是underlying array的一個view.
+
+利用slice opertor建立slice: `s[i:j], 0<=i<=j<=cap(s)`, s可以是array, pointer to array或是slice.
+
+slice不同於array, 不支援slice間的==和!=運算, 和nil比較除外. len和cap為0的slice不一定是nil slice.
+```go
+var s []int // nil slice
+s = []int{} // slice literal, non-nil slice
+```
+利用make建立unamed array來得到slice
+```go
+make([]T, len)
+make([]T, len, cap) // equivalent to make([]T, cap)[:len]
+```
+4.2.1詳細說明了append的簡化實作, slice會因為element的增加而導致underlying array重新reallocation的可能.
+
+#### [4.3] Maps
+- map[K]V, K和V都是type, K必須是comparible type, 所以slice不能當做key. 浮點數即使是comparible,
+但也不是key的好選擇. 97頁有提到把non-comparible type轉成string後當做key來workaround這限制.
+- 即使map中不存在key value, 也可以存取此mapping的value, 得到的是value type的0值. 有時,
+會需要知道map中是否存在key value, 可以用以下方式的ok變數取得此資訊:
+```go
+var ages map[string]int
+// ok == true means the key exists
+age, ok := ages["bob"]
+```
+- map的element無法得到address值, 因為map新增elements會造成rehashing而改變既有elements的儲存位置.
+- 從map移除key: `delete(map, key)`
+
+#### [4.4] Structs
+- struct的宣告通常和type一起建立named type:
+```go
+// named type Point, X and Y are fields of struct
+type Point struct {
+    X, Y int
+}
+```
+- 變數是struct或pointer to struct, 都可以使用`.`存取struct的fields.
+- 和package類似, fields名字首字大寫的是exported fields.
+- struct的fields如果都是comparible types, 那麼此struct就支援==, !=(比較方式是field-wise).
+- 利用anonymous fields來embedding其它struct的好處是可以直接存取embedding的fields, 也不受embedding struct
+  type是否有exported的限制. 由於使用struct type當做anonymous field, 同一種struct不能重複anonymous embedding.
+
+```go
+type Circle struct {
+    Point
+    Radius int
+}
+type Wheel struct {
+    Circle
+    Spokes int
+}
+
+var w Wheel
+w.X = 8 // equivalent to w.Circle.Point.X = 8
+
+// if Circle and Point are not exported name,
+// shorthand form is still valid.
+// but not w.circle.point.X = 8
+```
+
+#### [4.5] JSON
+golang的struct可以很容易的和JSON做轉換, 只有exported fields才會輸出至JSON, field tags則可以控制輸出至JSON的name
 
 ---
 
