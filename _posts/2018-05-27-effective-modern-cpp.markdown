@@ -20,7 +20,7 @@ void f(ParamType param);
 
 f(expr)
 ```
-ParamType是T和const, *(pointer), &/&&(reference)和volatile的各種可能組合
+ParamType是T和const, \*(pointer), &/&&(reference)和volatile的各種可能組合
 
 - Case 1: ParamType是pointer或reference
   expr如果有const, const會被保留, 否則傳進去f後, 會被修改而失去了const的意義
@@ -261,25 +261,28 @@ C++11在constexpr function有些限制, C++14則解除了這些限制
 - 引入mutex在data members會讓class object失去copyable, 因為mutex是moveable only type
 - mutex的成本可能比atomic貴, 所以如果只有單一variable或memory需要保護, 可以改用atomic
 
-### Item #17
-compiler產生的special member functions是inline, public, non-virtual(除非base destructor是virtual, 產生的destructor才會是virtual)
+### Item #17 Understand special member function generation
+compiler產生的special member functions是public, inline, non-virtual(除非base destructor是virtual, 產生的destructor才會是virtual)
 
 C++98的規則:
-- constructor: user沒有宣告constructor
-- copy constructor/copy assignment operator: member-wise copy, 宣告copy constructor or assignment operator不會影響另一個的產生 
+- default constructor: user沒有宣告任何constructor(包含copy constructor, constructor function template)
+- copy constructor/copy assignment operator: member-wise copy non-static data members, 宣告copy constructor or assignment operator不會影響另一個的產生 
 
-Big three rules: 如果有宣告destructor, copy constructor或是copy assginment operator其中一個, 那麼三個都要重新定義 
+Rule of three: 如果有宣告destructor, copy constructor或是copy assginment operator其中一個, 那麼這三個member functions都要宣告
 
 C++11的規則:
-- constructor: 同C++98
-- destructor : 同C++98, destructor預設是noexcept
-- copy operator/copy assignment operator: 同C++98, 但因為big three rules的關係, 自動產生另二個functions是deprecated
-如果有定義move operations, 則變成deleted狀態
-- move constructor/mov assignment operator: member-wise move, 但如果不支援實際上可能會呼叫到copy operations. move constructor和move
-assignment operator如果有定義其一, 另一個就不會自動產生. 如果有copy operations和destructor也不會自動產生
-- member function templates不影響上面的規則
+- default constructor: 同C++98(包含move constructor)
+- destructor : 同C++98, 除了destructor預設是noexcept
+- copy operator/copy assignment operator: 同C++98, 但因為rule of three的關係, 自動產生另二個member functions是deprecated.
+如果有宣告move operations, 則變成deleted狀態
+- move constructor/move assignment operator: member-wise move non-static data members. move constructor和move assignment operator如果有宣告其一,
+另一個就不會自動產生. 如果有宣告copy operations和destructor也不會自動產生
 
-如果compiler產生的special member function符合需求, 可以手動宣告再加上=default
+Howard Hinnant整理出了一個對照表![](http://howardhinnant.github.io/smf.jpg)
+
+[Reference]
+1. [Compiler-generated Functions, Rule of Three and Rule of Five](https://www.fluentcpp.com/2019/04/19/compiler-generated-functions-rule-of-three-and-rule-of-five/)
+2. [The Rule of Zero in C++](https://www.fluentcpp.com/2019/04/23/the-rule-of-zero-zero-constructor-zero-calorie/)
 
 ---
 
