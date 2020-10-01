@@ -252,6 +252,106 @@ golang的struct可以很容易的和JSON做轉換, 只有exported fields才會�
 
 ---
 
+### Chapter 5 Functions
+
+#### [5.1] Function Declarations
+function declaration如果沒有function body, 表示此function的實作是以其它程式語言完成.
+
+#### [5.2] Recursion
+- outline範例驗證了4.2中slice是一種struct的觀點, slice的data pointer即便在callee有了變動, 也不影響caller.
+因為callee的slice修改的是caller傳進去的複本.
+- golang的stack size是變動大小的, 因此recursion不會有stack overflow問題.
+
+#### [5.3] Multiple Return Values
+function的回傳值如果是named results, 可以使用bare return.
+
+#### [5.4] Errors
+- fmt.Errorf可以用來串接由下至上的error message.
+- io.EOF的使用.
+
+#### [5.5] Function Values
+- functions在golang是first class values, 可以如同一般types一樣使用.
+- function的type表達方式是`func(param-list) (result list)`.
+- function value只能與nil做比較.
+
+#### [5.6] Anonymous Functions
+- anonymous function就是golang的closure.
+- function是reference type
+- iteration variables在closure的capturing問題.
+
+#### [5.7] Variadic Functions
+- variadic function的最後一個參數型態是`param ...T`, 在function body的使用和slice無異, 但是function type
+和接受slice參數的function不一樣.
+- 傳遞slice到variadic function要在slice變數後加ellipse(...).
+
+#### [5.8] Deferred Function Calls
+- defer關鍵字可以使function/method call在離開enclosing function時才執行, 通常使用在resources released的
+地方(file, socket, mutex...等), 可以減少要處理error conditions時的resource housekeeping.
+- 可以和closure搭配做更進一步的function debugging.
+
+---
+
+### Chapter 6 Methods
+
+#### [6.1] Methods Declarations
+- 在function name前加上一個receiver的參數就形成了該receiver type的method.
+
+```go
+func (receiver) name(param-list) (result-list) {
+    body
+}
+
+```
+- 對任意的named type都可以宣告methods, 只要底層的type不是pointer或interface.
+
+#### [6.2] Methods with a Pointer Receiver
+- Method宣告中的receiver type可以是pointer, 表示此method可以修改receiver的內容.
+- Receiver argument和receiver paramter的type互為T和\*T時:
+
+```go
+func (r *T) MethodA() { ... }
+func (r T) MethodB() { ... }
+
+var t T
+var pt *T = &t
+
+// receiver parameter is *T, receiver argument is T
+t.MethodA()  // implies (&t).MethodA()
+// receiver parameter is T, receiver argument is *T
+pt.MethodB() // implies (*pt).MethodB()
+```
+- Named type的methods中如果有一method的receiver type是\*T, 則此named type不是copyable(ex. bytes.Buffer).
+- nil是合法的receiver value, 但不是合法的receiver argument(因為nil的type尚未決定).
+
+#### [6.3] Composing Types by Struct Embedding
+- 利用struct embedding, embedded fields的methods可以被promote成struct type的methods. 要注意的是這之間
+的關係並非是一般OOP的base class與derived class關係.
+- Compiler解析method的順序依序是直接宣告的method, 第一層embedded fields的promoted method, 
+第二層embedded fields的promoted method...
+- unnamed struct type也可以透過struct embedding的方式擁有method, 是一種可以增進expressive code的技巧.
+請參考書上的例子.
+
+#### [6.4] Method Values and Expressions
+- method value的形式是t.f, 其中t是綁定的receiver object.
+- method expression的形式是T.f或是(\*T).f, 其中T是type.
+
+```go
+var p Point
+scaleP := p.ScaleBy
+fmt.Printf("%T\n", scaleP) // "func(float64)"
+scale := (*Point).ScaleBy
+fmt.Printf("%T\n", scale)  // "func(*Point, float64)"
+```
+
+#### [6.5] Example: Bit Vector Type
+- String method的receiver type如果是\*T, 呼叫fmt.Println的argument type是T時並不會呼叫此String method.
+
+#### [6.6] Encapsulation
+- golang提供的encapsulation是以package為基礎, 根據names是否capitalized來決定是否exported至package外.
+因此, 要達成object encapsulation的唯一方式是使用struct來宣告object type.
+
+---
+
 ### Chapter 10 Packages and the Go Tool
 
 #### [10.4] Import Declarations
