@@ -352,6 +352,124 @@ fmt.Printf("%T\n", scale)  // "func(*Point, float64)"
 
 ---
 
+### Chapter 7 Interfaces
+
+#### [7.1] Interfaces as Contracts
+- interface是一種abstract type, 只宣告了type需要提供的methods prototype.
+
+```go
+type Writer interface {
+    Write(p []byte)(n int, err error)
+}
+```
+
+#### [7.2] Interface Types
+- interface type和struct type一樣, 可以利用embedding其它interface type組成新的interface type.
+
+```go
+type Reader interface {
+    Read(p []byte)(n int, err error)
+}
+
+type ReaderWriter interface {
+    Reader
+    Writer
+}
+```
+
+#### [7.3] Interface Satisfaction
+- assignability rule of interface: expression的type滿足interface宣告的methods
+
+```go
+var w io.Writer
+w = new(bytes.Buffer)          // OK: *bytes.Buffer has Write method
+w = *new(bytes.Buffer)         // compile error: bytes.Buffer does not implement
+                               // io.Writer (Write method has pointer receiver)
+
+var rwc io.ReaderWriterCloser
+rwc = new(bytes.Buffer)        // compile error: *bytes.Buffer lacks Close method
+
+w = rwc // OK
+rwc = w // compile error
+```
+
+- 透過interface的變數只能呼叫此interface提供的methods.
+
+```go
+var w io.Writer
+w = os.Stdout
+w.Close()       // compile error: io.Writer lacks Close method
+                // even concrete type of w has Close method
+```
+
+- empty interface type `interface{}`, 任何type的expression都可以assign給empty interface.
+
+#### [7.4] Parsing Flags with flag.Value
+- 利用interface `flag.Value`提供的methods來parsing customized command
+
+#### [7.5] Interface Values
+- interface value包含concrete type及其value兩部份, 分別以dynamic type和dynamic value稱之.
+- interface value為nil只表示dynamic type為nil.
+- intarfeca value可能可以使用==和!=來做比較. 二個interface value相等表示dynamic type和dynamic value都相等.
+- interface value的比較可能因為dynamic type是uncomparable type而發生panic.
+
+```go
+var x interface{} = []int{1, 2, 3}
+fmt.Println(x == x) // panic: comparing uncomparable type
+```
+
+- 可以使用%T打印出interface value的dynamic type.
+- interface value有可能dynamic type不是nil, 但dynamic value是nil.
+
+```go
+var buf *bytes.Buffer
+var w io.Writer = buf
+if w != nil {
+    w.Write([]byte("done!\n")) // panic: nil pointer reference
+}
+```
+
+#### [7.10] Type Assertions
+- type assertion的形式是`x.(T)`, x是interface type的expression, T是type.
+  - T是concrete type: 檢查x的dynamic type是否是T
+    ```go
+    var w io.Writer
+    w = os.Stdout
+    f := w.(*os.File)      // success: f == os.Stdout, the type of f is *os.File
+    c := w.(*bytes.Buffer) // panic
+    ```
+  - T是interface: 檢查x的dynamic type是否滿足T宣告的methods
+    ```go
+    var w io.Writer
+    w = os.Stdout
+    rw := w.(io.ReadWriter)      // success: the type of rw is io.ReadWriter
+                                 // the interface value of rw is the same as w
+    w = new(ByteCounter)
+    rw = w.(io.ReadWriter)       // panic
+    ```
+- x是nil時, type assertion都是failure.
+- no panic形式的type assertion:
+```go
+var w io.Writer = os.Stdout
+f, ok := w.(*os.File)      // success: ok == true, f == os.Stdout
+b, ok := w.(*bytes.Buffer) // failure: ok == false, b == nil
+```
+
+#### [7.13] Type Switches
+- type switches可以簡化if-else形式的type assertions. switch的部份也可以寫成`switch x := x.(type)`,
+則可以在case裡存取x的dynamic value. 這裡重複利用了x, 因為switch和case都有各自的lexical block.
+```go
+switch x.(type) {
+case nil:       // ...
+case int, uint: // ...
+case bool:      // ...
+case string:    // ...
+default:        // ...
+}
+```
+
+---
+
 ### Chapter 10 Packages and the Go Tool
 
 #### [10.4] Import Declarations
