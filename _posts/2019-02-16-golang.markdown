@@ -255,34 +255,90 @@ golang的struct可以很容易的和JSON做轉換, 只有exported fields才會�
 ### Chapter 5 Functions
 
 #### [5.1] Function Declarations
-function declaration如果沒有function body, 表示此function的實作是以其它程式語言完成.
+- function declaration的組成如下. 如果function沒有或只有一個unnamed return value, return-list的括號可以省略.
+```go
+func name(parameter-list) (return-list) {
+    body
+}
+```
+- named return values和parameters一樣都是function的local variables, 其初始值為該type的0值.
+- parameters或results的type如果相同, 可以多個names共用一個type宣告, 不影響function signature.
+```go
+func f(i, j, k int, s, t string) { /* ... */ }
+func f(i int, j int, k int, s string, t string) { /* ... */ }
+```
+- unused parameters可以省略name或是使用blank identifier(\_)強調.
+- golang的function不支援default parameters, keyword arguments.
+- function declaration如果沒有function body, 表示此function的實作是以其它程式語言完成.
 
 #### [5.2] Recursion
-- outline範例驗證了4.2中slice是一種struct的觀點, slice的data pointer即便在callee有了變動, 也不影響caller.
+- outline範例驗證了4.2中slice是一種struct的觀點, 即使slice的data pointer在callee有了變動, 也不影響caller.
 因為callee的slice修改的是caller傳進去的複本.
-- golang的stack size是變動大小的, 因此recursion不會有stack overflow問題.
+- golang的stack size是變動大小的, 所以recursion不會有stack overflow問題.
 
 #### [5.3] Multiple Return Values
-function的回傳值如果是named results, 可以使用bare return.
-
-#### [5.4] Errors
-- fmt.Errorf可以用來串接由下至上的error message.
-- io.EOF的使用.
+- function的回傳值如果是named results, 可以使用bare return, 但儘可能少用.
 
 #### [5.5] Function Values
-- functions在golang是first class values, 可以如同一般types一樣使用.
-- function的type表達方式是`func(param-list) (result list)`.
-- function value只能與nil做比較.
+- function在golang是first class value, 其type就是function的signature:  
+`func(param-list) (result list)`. 可以如同一般types一樣做為function的參數或回傳值使用.
+- function value是noncomparable, 只能與nil做比較.
+```go
+var f func(int) int
+if f != nil {
+    f(3)
+}
+```
 
 #### [5.6] Anonymous Functions
-- anonymous function就是golang的closure.
-- function是reference type
-- iteration variables在closure的capturing問題.
+- function只能宣告在package level, 要在expression中宣告function必須使用function literal.
+function literl的形式是一般function宣告少了name, 也就是anonymous function.
+- 利用annoymous inner function存取enclosing function的local variables可以建立closure.
+因為這種hidden variable reference的關係, 所以function被規類為reference type.
+
+```go
+func squares() func() int {
+   var x int
+   return func() int {
+       x++
+       return x * x
+   }
+}
+
+f := squares()
+fmt.Println(f()) // "1"
+fmt.Println(f()) // "4"
+fmt.Println(f()) // "9"
+```
+- anonymous function要達成recursion, 需要先宣告function varible, 再將anonymous function
+指定給function variable.
+
+```go
+var factorial func(x uint) uint
+factorial = func(x uint) uint {
+    if x == 0 || x == 1 {
+       return 1
+    }
+    return x * factorial(x - 1)
+}
+```
+- 在使用closure時, 要特別注意capturing iteration variables造成的問題.
 
 #### [5.7] Variadic Functions
-- variadic function的最後一個參數型態是`param ...T`, 在function body的使用和slice無異, 但是function type
+- variadic function的最後一個參數型態是`param ...T`. 在function body的使用和slice無異, 但是function type
 和接受slice參數的function不一樣.
+```go
+func f(...int) {}
+func g([]int) {}
+fmt.Printf("%T\n", f) // "func(...int)"
+fmt.Printf("%T\n", g) // "func([]int)"
+```
 - 傳遞slice到variadic function要在slice變數後加ellipse(...).
+```go
+values := []int{1, 2, 3, 4}
+f(values...)
+g(values)
+```
 
 #### [5.8] Deferred Function Calls
 - defer關鍵字可以使function/method call在離開enclosing function時才執行, 通常使用在resources released的
