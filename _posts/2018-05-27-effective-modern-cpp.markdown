@@ -105,15 +105,30 @@ auto var = static_cast<T>(expr);  // T is the type you want
 
 ## Chapter 3 Moving to Modern C++
 
-### Item #7
-Braced initialization的好處
-- 在任何地方都可以用來初始化物件, =和()的方式在某些地方就有些限制
-
-  例如:
-  - 在class non-static data member的預設值就不能使用()
-  - 在non-copyable object中就不能使用=
-- 防止narrowing conversion和vexing parse
-- 可以直接初始化container的內容
+### Item #7: Distinguish between () and {} when creating objects
+C++11新增了uniform initialization(braced initialization)的語法後, 初始化的方式可以有以下幾種組合
+```c++
+int x(0);    // direct initialization
+int x = 0;   // copy initialization
+int x{0};    // direct list initialization
+int x = {0}; // copy list initialization
+```
+C++11出現braced initialization的原因是=和()的初始化方式在某些使用情況下有限制
+- 初始化non-static data members不能使用()
+  在C++11之前, 只能初始化static const data members
+```c++
+class Widget
+{
+    ...
+private:
+    static const int x = 0;
+    int y{0};               // also can use "=" to initialize
+};
+```
+- 在non-copyable object中就不能使用=
+- most vexing parse問題
+- 防止narrowing conversion
+- 直接初始化container的內容
 
 Braced initialization的缺點是, 當type的constructor有多個, 且其中一個constructor
 有使用std::initializer_list當做參數的話, 不論如何, braced initialization都會以
@@ -122,9 +137,12 @@ std::initializer_list為優先對象
 std::vector<int> v1(10, 20); // create 10 elements with value 20
 std::vector<int> v2{10, 20}; // create 2 elements 10, 20
 ```
-總結來說, 似乎是使用**{}**來初始化物件是最佳解(雖然作者對那一派沒有特別偏好). 只要注意
-物件的constructor是否有std::initializer_list參數類型的constructor, 必要時用**()**來避免
-上述的情形發生
+雖然作者對使用那種initialization方式沒有明確的建議, 但是braced initialization的確也帶來了一些
+意想不到的混亂. 參考部份給出了其它的比較與建議.
+
+[Reference]
+1. [Tip of the Week #88: Initialization: =, (), and {}](https://abseil.io/tips/88)
+2. [Initialisation in C++17 – the matrix](https://timur.audio/initialisation-in-c17-the-matrix)
 
 ### Item #8
 0和NULL常常都會當做null pointer來使用, 但實際上0的type是int, NULL的type依實作可能是int或是
