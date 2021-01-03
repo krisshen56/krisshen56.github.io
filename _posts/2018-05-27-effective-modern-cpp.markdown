@@ -86,20 +86,23 @@ TD<decltype(x)> xType;
 
 ## Chapter 2 auto
 
-### Item #5
+### Item #5: Prefer auto to explicit type declarations
 使用auto的好處
 - 避免uninitialized variable問題
 - 較少的typing
-- 較佳的執行效率和記憶體使用量(以lambda closure轉換成std::function為例)
+- 可以正確表示lamda closure的型別(只有compiler才知道)
+  - 轉型成std::function會增加記憶體使用量和較差的執行效率
 - 避免錯誤的type宣告帶來不必要的轉型, 造成程式行為怪異和效能損失
 
-### Item #6
-由於"invisible" proxy type的關係, auto有可能會推導出錯誤的type, 造成意料外的結果
-
-解決方式是使用the explicitly type initializer idiom強制auto推導出需要的type
+### Item #6: Use the explicitly type initializer idiom when auto deduces undesired types
+由於"invisible" proxy type的關係(ex. std::vector\<bool\>::reference), auto有可能會推導出錯誤的type,
+造成預期外的結果. 解決方式是使用the explicitly type initializer idiom強制auto推導出需要的type
 ```c++
 auto var = static_cast<T>(expr);  // T is the type you want
 ```
+
+[Reference]
+1. ["auto to stick" and Changing Your Style](https://www.fluentcpp.com/2018/09/28/auto-stick-changing-style/)
 
 ---
 
