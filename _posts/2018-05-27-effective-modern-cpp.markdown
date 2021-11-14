@@ -55,8 +55,8 @@ f({27});       // error, cannot deduce
 要注意的是, auto如果出現在function的return type或lamdba表達式中的參數, 也是只支援template type deduction,
 而非一般的auto type deduction
 
-### Item #3
-- decltype(expr)得到的type就是expr的真實type
+### Item #3: Understand decltype
+- decltype(name)得到的type就是entity name的真實type
 - decltype在C++11是和auto搭配成為trailing return type語法
 - C++11只允許lambda表達式中單一statement的return type deduction, C++14放寬到function並允許multiple statements
 - decltype(auto)除了可以使用在function return type外, 也可以使用在一般的type宣告
@@ -72,7 +72,7 @@ decltype(x) y;   // y is int
 decltype((x)) z; // z is int&
 ```
 
-### Item #4
+### Item #4: Know how to view deduced types
 如何得知推導出來的type:
 - Compile time可以使用undefined template function, 從compiler吐出來的error訊息得知
 ```c++
@@ -496,3 +496,84 @@ else
 
 ---
 
+## Chapter 8 Tweaks
+
+### Item #41: Consider pass by value for copyable parameters that are cheap to move and always copied
+
+實作member function `addName`, 傳入的參數只有一個std::string `newName`, `newName`會被加入std::vector.
+考慮以下二種使用情形, 有三種不同的方式來實作`addName`:
+
+```c++
+Widget w;
+std::string name("Bart");
+w.addName(name);           // call addName with lvalue
+w.addName(name + "Jenne"); // call addName with rvalue
+```
+1. Overloading:
+```c++
+class Widget {
+public:
+    void addName(const std::string& newName)
+    {
+        names.push_back(newName);
+    }
+    void addName(std::string&& newName)
+    {
+        names.push_back(std::move(newName));
+    }
+private:
+    std::vector<std::string> names;
+};
+```
+此方式需要實作二個functions, 產生的object code也可能有二個functions(如果沒有inline).  
+Cost分析:
+- parameter是lvalue: 1 copy constructor(names的push_back)
+- parameter是rvalue: 1 move constructor(names的push_back)
+2. Using a universal reference:
+```c++
+class Widget {
+public:
+    template<typename T>
+    void addName(T&& newName)
+    {
+        names.push_back(std::forward<T>(newName));
+    }
+private:
+    std::vector<std::string> names;
+};
+```
+此方式只需要實作一個function template在header file, 但在使用時會實體化成二個functions,
+所以產生的object code和overloading方式一樣有code bloat問題.  
+Cost分析:
+- parameter是lvalue: 1 copy constructor(names的push_back)
+- parameter是rvalue: 1 move constructor(names的push_back)
+
+3. Passing by value:
+```c++
+class Widget {
+public:
+    void addName(std::string newName)
+    {
+        names.push_back(std::move(newName));
+    }
+private:
+    std::vector<std::string> names;
+};
+```
+此方式的實作重點在於std::move, 因為newName已與caller無關, 所以可以安全的將其move至names.  
+Cost分析:
+- parameter是lvalue: 1 copy constructor(newName) + 1 move constructor(names的push_back)
+- parameter是rvalue: 1 move constructor(newName) + 1 move constructor(names的push_back)
+
+本條目的標題有幾項重點:
+1. consider: 考慮pass by value的方式需仔細評估花費.
+2. copyable parameters: 參數必須是copy constructible type. 如果參數只是move-only type,
+overloading的方式只需提供一種function, 因此pass by value的方式一點意義也沒有.
+3. cheap to move: 相較於其它方式, pass by value多一個move constructor的cost, 因此只有在此cost影響不大時才考慮
+4. always copied: 傳入的參數在function裡的流程都是有copy的動作, 如果只有某些條件下才進行copy就不符合.
+
+如果function裡的copy是assignment copy而不是constructor copy, 對std::string而言, 當舊字串長於新字串時,
+pass by value相較於pass by reference會多了memory allocation和deallocation的高花費操作.
+類似的情形也會發生於有dynamic memory allocation的type, 例如std::vector.
+
+即使pass by value只多了一個cheap move operation, 當一連串的pass by value發生時, 累積的move花費仍不可忽視.
