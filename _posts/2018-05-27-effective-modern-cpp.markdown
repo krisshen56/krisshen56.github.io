@@ -417,16 +417,19 @@ C++11引入了move operations, 可以減少copy operations增進performance, 但
 ## Chapter 6 Lambda Expressions
 lambda expression產生的object稱為closure, 其type為closure class, 每個lambda expression的closure class都是唯一的
 
-### Item 31
+### Item 31: Avoid default capture modes
 by reference capture要注意的是reference的object可能在closure引用時失效造成的dangling reference問題
 
-by value capture要注意的有
-- pointer被capture, 可能會有dangling pointer問題
-- static storage object被capture, 在closure引用時可能已經不是當時capture的值
+by value capture要注意的是pointer被capture(包含this pointer), 可能會有dangling pointer問題
 
 在class的member function內capture member variable by value
 - 宣告一個local variable, 將member variable copy至local variable, 再capture此local variable
 - 使用C++14的generalized lambda capture
+
+C++17新增了`[*this]`可以capture this object by copy, C++20開始default capture by value不再implicit capture this pointer
+
+[Reference]
+1. [Back to Basics: Lambdas from Scratch - Arthur O'Dwyer - CppCon 2019](https://youtu.be/3jCOwajNch0)
 
 ### Item 32
 C++14引入了init capture(又稱為generalized lambda capture)解決了C++11無法capture by move的限制
