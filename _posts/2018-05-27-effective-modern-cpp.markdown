@@ -431,7 +431,7 @@ C++17新增了`[*this]`可以capture this object by copy, C++20開始default cap
 [Reference]
 1. [Back to Basics: Lambdas from Scratch - Arthur O'Dwyer - CppCon 2019](https://youtu.be/3jCOwajNch0)
 
-### Item 32
+### Item 32: Use init capture to move objects into closures
 C++14引入了init capture(又稱為generalized lambda capture)解決了C++11無法capture by move的限制
 ```c++
 auto pw = std::make_unique<Widget>();
@@ -439,20 +439,22 @@ auto pw = std::make_unique<Widget>();
 auto func = [pw = std::move(pw)]
             {...}
 ```
-等號左邊和大括號內的pw是closure內的data member, 等號右邊的pw則是屬於lambda expression定義時的scope
+等號左邊和大括號內的pw是closure class的data member, 等號右邊的pw則是屬於lambda expression定義時的scope
 
 C++11的做法有二種:
-1. 改用functor
-2. 利用std::bind, 將要move的object傳至std::bind當做lambda expression的參數
+1. 改用functor(因為lambda expression只是functor的syntax sugar)
+2. 利用std::bind, 將movable object傳至std::bind當做lambda expression的參數
 ```c++
+// lambda by default is const, to avoid modifications we need const
+// in lambda's parameter. For mutable lambda, const is no need.
 std::bind([](const std::unique<Widget>& pw) {
                 ...
             },
             std::make_unique<Widget>());
 ```
 
-### Item 33
-C++14有了generic lambda, lambda expression的參數可以使用auto, 對應的實作就是functor的operator()變成了template function
+### Item 33: Use decltype on auto&& parameters to std::forward them
+C++14有了generic lambda, lambda expression的參數可以使用auto, 對應的實作就是functor的operator()變成了function template
 
 如果lambda expression的參數想要使用perfect forwarding, 參數要宣告成auto&&, 套用的std::forward則是需要decltype的幫忙
 ```c++
@@ -462,6 +464,18 @@ auto f =
         return func(normalize(std::forward<decltype(param)>(param)));
     };
 ```
+
+C++20可以在lambda expression使用template parameters, 所以也可以寫成
+```c++
+auto f =
+    []<typename T>(T&& param)
+    {
+        return func(normalize(std::forward<T>(param)));
+    };
+```
+
+### Item 34: Prefer lambdas to std::bind
+std::bind的用處只剩下在C++11模擬move capture和generic lambda的功用, 其應用上的缺失和複雜, 都可以由lambda expression解決
 
 ---
 
