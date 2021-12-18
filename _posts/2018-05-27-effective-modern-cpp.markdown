@@ -162,7 +162,7 @@ f(nullptr); // calls f(void*)
 nullptr的type是std::nullptr_t, 可以轉換成任意的pointer type. 除了可以避免上述問題外, 也可以
 讓function template在type deduction時可以推導出pointer type而不是integral type(參見書上的例子)
 
-### Item #9
+### Item #9: Prefer alias declarations to typedefs
 alias declaration可以完全取代typedef, 而且可以和template搭配形成alias template, 好處是可以在TMP
 時省去許多::type, typename的使用
 ```c++
@@ -175,19 +175,19 @@ template<typename T>
 using remove_const_t = typename std::remove_const<T>::type;
 ```
 
-### Item #10
-C++98的unscoped enum定義的name,其scope是和Color同一層
+### Item #10: Prefer scoped enums to unscoped enums
+C++98 unscoped enum定義的name,其scope是和Color同一層
 ```c++
 enum Color { black, white, red }; // unscoped enum
 auto white = false;               // error
 ```
-C++11的scoped enum則是如同class一樣,局限在class scope
+C++11 scoped enum則是如同class一樣,局限在class scope
 ```c++
 enum class Color { black, white, red }; // scoped enum
 auto white = false;                     // fine
 ```
 
-scoped enum是strongly typed,不像unscoped enum可以implicitly轉換成intergral type(接著再轉成float...)
+scoped enum是strongly typed,不像unscoped enum可以implicitly轉換成intergral types(接著再轉成floating  types)
 
 scoped enum預設是可以forward declaration的, unscoped enum在C++11要達成forward declaration需要指定
 underlying type
@@ -196,7 +196,7 @@ enum class Status;         // default underlying type is int
 enum Color: std::uint8_t;  // underlying type is std::uint8_t
 ```
 
-unscoped enum比較有用的地方在於std::tuple中指定特定的field(因為implicit conversion的好處)
+unscoped enum有用的地方在於std::tuple中以有意義的enum指定field(implicit conversion的好處)
 ```c++
 using UserInfo = std::tuple<std::string, std::string, std::size_t>;
 UserInfo uInfo;
