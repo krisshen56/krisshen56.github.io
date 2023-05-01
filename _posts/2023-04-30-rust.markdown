@@ -1,0 +1,91 @@
+---
+layout: post
+title:  "Notes on The Rust Programming Language"
+date:   2023-04-30 18:00:00 +0800
+categories: rust
+---
+### [Chapter 6] Enums and Pattern Matching
+
+#### [6.1] Defining an Enum
+1. enum definition and its usage
+```rust
+enum IpAddrKind {
+    V4,
+    V6,
+}
+fn route(ip_kind: IpAddrKind) {}
+route(IpAddrKind::V4);
+```
+2. enum with associated data
+```rust
+enum IpAddr {
+    V4(u8, u8, u8, u8),
+    V6(String),
+}
+let home = IpAddr::V4(127, 0, 0, 1);
+let loopback = IpAddr::V6(String::from("::1"));
+```
+
+---
+
+## [Chapter 10] Generic Types, Traits, and Lifetimes
+假設x, y都是`&i32`, x op y不是比較address, 而是比較reference的值, 不確定是不是reference
+type都是如此(op是relative operator == > <)
+
+#### [10.1] Generic Data Types
+1. generic可以用在function, struct, enum, <T>要放在這些entity的名字之後
+2. 對generic struct/enum實作method(XXX is the name of struct/enum's)
+```rust
+impl<T> XXX<T> {
+}
+```
+也可以只對某種T提供method(類似C++的partial specialization)
+```rust
+impl XXX<f32>{
+}
+```
+3. generic struct也可以有generic method
+```rust
+impl<X1, Y1> Point<X1, Y1> {
+    fn mixup<X2, Y2>(self, other: Point<X2, Y2>) -> Point<X1, Y2> {
+        ...
+    }
+}
+```
+4. monomorphization等於c++ template instantiation
+
+---
+
+## [Chapter 13] Functional Language Features: Iterators and Closures
+functional programming的形式:
+- 把function當做參數傳入function
+- function的回傳值為function
+- 用變數儲存function
+
+### [13.1] Closures: Anonymous Functions that Capture Their Environment
+1. closures是anonymous functions, 可以儲存在變數或是直接當做參數傳遞給functions
+2. closures可以capture定義closures區塊的變數, 根據capture的方式, closures自動實作了以下的traits
+    - FnOnce: closures只能被呼叫一次, capture變數是採用move的方式
+    - FnMut: closures可以被呼叫多次, capture變數是採用mutable reference的方式
+    - Fn: closures可以被同時呼叫多次, capture變數是採用unmutable reference的方式或是沒有capture變數
+3. FnOnce是FnMut的superset, FnMut是Fn的superset. 換句話說, 實作Fn的closures, 也自動實作了FnMut和FnOnce;
+實作FnMute的closures, 也自動實作了FnOnce.
+4. function和closure的語法比較:
+```rust
+fn  add_one_v1   (x: u32) -> u32 { x + 1 }
+// closure with type annotations
+let add_one_v2 = |x: u32| -> u32 { x + 1 };
+let add_one_v3 = |x|             { x + 1 };
+// only one expression, brackets are optional
+let add_one_v4 = |x|               x + 1  ;
+```
+5. 如果closures定義沒有type annotations, 第一次呼叫時才會推導出參數和回傳值的型別,
+之後的呼叫就會限定參數和回傳值的型別
+```rust
+let example_closure = |x| x;
+// x is inferred as String
+let s = example_closure(String::from("hello"));
+// error, 5 is not a String
+let n = example_closure(5);
+```
+6. 在closures的`||`前加`move` keyword, 可以強制變數是以capture by move的方式執行
