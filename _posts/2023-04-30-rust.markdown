@@ -372,21 +372,50 @@ pub trait Drop {
 ## [Chapter 17] Object-Oriented Programming Features of Rust
 
 ### [17.1] Characteristics of Object-Oriented Languages
-1. OOP的幾個面向
-   - object = data + methods => Rust支援
-   - encapsulation => Rust支援
-   - inheritance => Rust不支援
-2. Rust支援default trait method implementation, 也可以override此default implementation
-3. Rust支援的多型
-   - Bounded parametric polymorphism: generics + trait bounds
-   - trait objects
+1. OOP的幾個面向:
+   - objects = data + methods
+     - Rust支援(`struct`和`enum`內含data, `impl`區塊對`struct`和`enum`提供methods)
+   - encapsulation
+     - Rust支援(pub關鍵字)
+   - inheritance
+     - Rust不支援
+2. 使用inheritance的二個理由:
+   - parent type實做了methods, child type可以直接使用或override
+     - Rust提供的近似做法是default trait method implementation, default implementation也可以override
+   - polymorphism: 可以在parent type出現的地方直接用child type取代
+     - Rust提供的近似做法是trait objects
 
 ### [17.2] Using Trait Objects That Allow for Values of Different Types
-1. trait object: Box<dyn T>, &dyn T(T is the trait name)
-2. trait object是dynamic dispatch, 和static dispatch相比有效能損失
+1. 雖然enum可以用來儲存多種型別, 但這些型別已經在編譯時決定, 無法之後再擴充, 例如:
+```rust
+enum SpreadsheetCell {
+    Int(i32),
+    Float(f64),
+    Text(String),
+}
+```
+   如果需要動態擴充型別, 須改用trait object
+2. trait object包含了二個pointer資訊
+   - 實作trait的型別實體
+   - 用來查詢型別實作的trait methods的table
+3. trait object: `Box<dyn T>`, `&dyn T`(`T` is the trait name), 例如:
+```rust
+pub trait Draw {
+    fn draw(&self);
+}
+pub struct Screen {
+    pub components: Vec<Box<dyn Draw>>,
+}
+```
+3. static dispatch和dynamic dispatch的差別:
+   - static dispatch for generics: 編譯時就根據呼叫時的concrete type直接產生non generic的function/method實作
+   - dynamic dispatch for trait object: 編譯時無法決定要呼叫的method, 和static dispatch相比有效能損失
 
 ### [17.3] Implementing an Object-Oriented Design Pattern
-1. 利用trait object實作state pattern
-2. impl block裡的method, 第一個參數可以是self, &self, &mut self外, 也可以是Box<self>...
-(coercion特性)
-3. 利用Rust的特性, 改變思考方式, 把state特性嵌入type, 實作變形的state pattern
+1. state pattern: 一個value有多種states, 將每種state都用一個object表示, value的state轉換透過state object完成
+2. `struct Post`的state field要用`Option`包裝的原因是state field在進行ownership的轉移時, Rust不允許struct field沒有值
+(產生cannot move out of borrowed content的錯誤)
+3. `trait State`的methods第一個參數不是常見的self, &self, &mut self, 而是`self: Box<Self>`, 限定了只有
+Box包裝後的型別才可以呼叫這些methods
+4. Rust可以透過trait object實現object-oriented design pattern的state pattern, 但是將state特性嵌入type的變形
+state pattern更符合Rust的精神
