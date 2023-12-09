@@ -4,6 +4,66 @@ title:  "Notes on The Rust Programming Language"
 date:   2023-04-30 18:00:00 +0800
 categories: rust
 ---
+### [Chapter 3] Common Programming Concepts
+
+#### [3.1] Variables and Mutability
+1. 在Rust中, variables預設是immutable
+```
+let x = 5;     // immutable
+let mut x = 5; // mutable
+```
+2. const永遠都是immutable, 須指定型別且只能用const expression
+(compile time evaluation)對其賦值
+```
+// note the naming rule of const
+const THREE_HOURS_IN_SECONDS: u32 = 60 * 60 * 3;
+```
+3. Varible shadowing: 重新使用let宣告一個同名的variable, 型別可以改變,
+會遮蔽之前同名的variable直至scope結束
+```
+let spaces = "   ";
+let spaces = spaces.len();
+```
+
+#### [3.2] Data Types
+1. Rust的scalar types:
+   - integer type: i8, u8, i32, u32, ..., 比較特別的是isize和usize(和arch type有關)
+   - float type: f32, f64, 預設是f64
+   - boolean(one byte): true, false
+   - char(4 bytes): 可以表示unicode scalar value
+```
+let z: char = 'ℤ';
+```
+2. Integer literals:
+   - 57u8(with type suffix)
+   - 98_222(decimal with visual separator)
+   - 0xff(hex)
+   - 0b1111_0000(binary)
+   - b'A'(u8 only)
+3. Rust的compound types:
+   - tuple
+```
+// 等同於let tup: (i32, f64, u8) = (500, 6.4, 1);
+let tup = (500, 6.4, 1);
+// tuple supports destructuring
+// so x = 500, y = 6.4, z = 1
+let (x, y, z) = tup;
+// access tuple element: x.0, x.1, ...
+let five_hundred = x.0;
+let six_point_four = x.1;
+let one = x.2;
+```
+   - array: allocated on stack, not heap
+```
+let a: [i32, 5] = {1, 2, 3, 4, 5}
+let a = {1, 2, 3, 4, 5}
+let a = [3; 5] // 等同於[3, 3, 3, 3, 3]
+```
+
+4. unit(空的tuple): 其值和型別都是`()`
+
+---
+
 ### [Chapter 6] Enums and Pattern Matching
 
 #### [6.1] Defining an Enum
