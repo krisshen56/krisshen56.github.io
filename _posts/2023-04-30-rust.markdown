@@ -139,6 +139,73 @@ expression可以放在function的最後一行當做回傳值
 
 ---
 
+### [Chapter 4] Understanding Ownership
+Rust的memory safety是透過ownership機制而非使用garbage collector達成
+
+#### [4.1] What Is Ownership?
+1. stack和heap的比較:
+
+    |           |          Stack           |              Heap            |
+    |-----------|:------------------------:|:----------------------------:|
+    | Data size | fixed,                   | dynamic,                     |
+    |           | known at compile time    | unknown at compile time      |
+    | Speed     | fast                     | slow(due to pointer deref)   |
+
+2. ownership rule:
+   - Each value in Rust has an owner
+   - There can only be one owner at a time.
+   - When the owner goes out of scope, the value will be dropped.
+3. `String`是可以動態調整大小的型別, 可以透過`String::from`從string literals建立
+4. 要真正複製一個`String`的內容, 可以使用`clone()` method
+5. 如果一個type或其部份有實做`Drop` trait, Rust是禁止其聲明為`Copy`, 也就是說Copy trait
+和Drop trait是互相衝突的
+6. 實作Copy trait的types:
+   - All the integer types, such as u32.
+   - The Boolean type, bool, with values true and false.
+   - All the floating-point types, such as f64.
+   - The character type, char.
+   - Tuples, if they only contain types that also implement Copy.
+7. 對沒有實作`Copy` trait的型別, variables assignment及functions的parameters passing和return values
+都會發生ownership的轉移
+
+#### [4.2] References and Borrowing
+1. reference: 和pointer一樣, 透過儲存的address來存取non owned data, 只是保證在reference的lifetime
+期間, 所指向的data都是valid的, 不會有dangling reference問題
+2. borrowing: the action of creating a reference(&T or &mut T)
+3. data race發生的原因:
+   - Two or more pointers access the same data at the same time.
+   - At least one of the pointers is being used to write to the data.
+   - There’s no mechanism being used to synchronize access to the data.
+4. Rust透過同一時間只能有一個mutable reference或多個immutable references的方式在compile time
+避免data race的產生
+
+#### [4.3] The Slice Type
+1. string slice(型別是`&str`): a reference to part of a `String`
+```rust
+    let s = String::from("hello world");
+
+    let hello = &s[0..5];
+    let world = &s[6..11];
+    let len = s.len();
+    let slice = &s[0..len];
+    // range前後省略等同於上面的寫法
+    let slice = &s[..];
+```
+2. string literal is an immutable string slice
+3. function參數型別選擇`&str`優於`&String`的好處是, 可以接收
+   - String slice
+   - String reference
+   - slice of string literals
+   - string literals
+4. slice的內容就是有一個ptr指向第一個element, 以及slice所包含的elements大小
+```rust
+    let a = [1, 2, 3, 4, 5];
+    // the type is &[i32]
+    let slice = &a[1..3];
+```
+
+---
+
 ### [Chapter 6] Enums and Pattern Matching
 
 #### [6.1] Defining an Enum
