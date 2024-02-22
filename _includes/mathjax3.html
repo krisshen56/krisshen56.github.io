@@ -1,0 +1,20 @@
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [              // start/end delimiter pairs for in-line math	
+      ['$','$'],
+	  ['\\(', '\\)']
+    ],
+    displayMath: [             // start/end delimiter pairs for display math
+	  ['$$','$$'],
+	  ['\\[', '\\]']
+    ],
+    processEscapes: true,      // use \$ to produce a literal dollar sign
+	processEnvironments: true, // process \begin{xxx}...\end{xxx} outside math mode
+  }
+};
+</script>
+<script id="MathJax-script" async 
+		src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+
