@@ -377,6 +377,41 @@ Rust的memory safety是透過ownership機制而非使用garbage collector達成
 
 ---
 
+### [Chapter 7] Managing Growing Projects with Packages, Crates, and Modules
+Rust的module system包含: packages, crates, modules and use, paths
+
+#### [7.1] Packages and Crates
+1. crate: Rust編譯器處理的最小單位, 即使是單一個程式碼檔案也是一個crate.
+2. crate可以分為二種:
+    - binary crate: 有定義main function
+    - library crate: 沒有main function. crate這名稱通常都是指library crate, 等同於一般的library概念
+3. package: 由多個crates組合而成(cargo.toml描述了如何建置這些crates),
+可以有多個binary crates和最多一個library crate.
+4. crate root: Rust從這個檔案開始建置特定的crate
+5. package layout(可以參考The Cargo Book的[Package Layout]一節):
+    - binary crate root(crate name同package name): src/main.rs
+    - library crate root(crate name同package name): src/lib.rs
+    - 其他binary crates則是放在src/bin底下, 每個檔案就是一個crate
+
+[Package Layout]: https://doc.rust-lang.org/cargo/guide/project-layout.html
+
+#### [7.2] Defining Modules to Control Scope and Privacy
+1. 編譯器建置crate是從crate root開始, 所以在crate建立module也是宣告在crate root file,
+宣告的方式為`mod garden;`. module的實作編譯器會依順序在以下地方尋找(以garden module為例)
+    - inline, 在crate root file中會有`mod garden` block
+    - src/garden.rs
+    - src/garden/mod.rs
+2. 同樣地, submodule宣告在src/garden.rs, submodule的實作編譯器會依順序在以下地方尋找(以vegetables submodule為例)
+    - inline, 在src/garden.rs中會有`mod vegetables` block
+    - src/garden/vegetables.rs
+    - src/garden/vegetables/mod.rs
+3. module本身和其內部定義的names預設的access level都是private, 宣告時加上`pub`可以讓外部存取
+4. crate root的implicit module name為crate, 所以如果有個type Asparagus定義在submodule vegetables,
+其完整的path為`crate::garden::vegetables::Asparagus`. 通常會使用`use`來縮減較長的path
+5. 如果不使用inline定義modules, module trees可以和module的source files在檔案系統的配置做對應
+
+---
+
 ## [Chapter 10] Generic Types, Traits, and Lifetimes
 x, y都是`&i32`, x op y(op是relative operator == > <)不是比較address, 而是比較reference的值,
 只有符合std::cmp::PartialOrd的type才支援
