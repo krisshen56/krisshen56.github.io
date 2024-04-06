@@ -410,6 +410,34 @@ Rust的module system包含: packages, crates, modules and use, paths
 其完整的path為`crate::garden::vegetables::Asparagus`. 通常會使用`use`來縮減較長的path
 5. 如果不使用inline定義modules, module trees可以和module的source files在檔案系統的配置做對應
 
+#### [7.3] Paths for Referring to an Item in the Module Tree
+1. 存取module裡定義的item, 和檔案系統中利用file path存取檔案一樣, 可以透過module tree的path存取.
+    - absolute path: path從crate root開始
+    - relative path: path從當下的module開始, 利用`self`, `super`可以遍歷整個module tree
+
+   兩種路徑各有其優缺點, 建議是使用絕對路徑以避免當下存取的code搬動時相對路徑也要跟著變動
+2. module tree path和檔案系統的file path之間的對照:
+    - `crate`相當於根目錄 */*
+    - `super`相當於上層目錄 *..*
+    - `self`相當於當前目錄 *.*
+3. 在struct或enum前加上`pub`對其內部的fields影響不同:
+    - struct: 只有struct name是public, 內部的fields仍是private, 除非fields前有加上`pub`
+    - enum: 內部的fields都是public
+
+#### [7.4] Bringing Paths into Scope with the use Keyword
+1. 使用`use`在目前的scope建立shortcut就像在檔案系統中建立symbolic link一樣
+2. 存取module定義的function, 通常建立的shortcut只到function的parent module, 目的是為了區分這個function
+是當下module定義的還是其它module定義的. 如果是module定義的struct或enum, 建立的shortcut就會是完整的path,
+除非是有同名的情況.
+3. `use`可以和`as`一起使用建立alias name
+4. `use`建立的shortcut name對外部module仍然是private, 如需export至外部module則須使用`pub use`
+5. 許多`use` statements如果有共同path, 可以使用nested path的方式讓code更精簡
+6. 和檔案系統的wildcard pattern一樣, `use` statement也支援glob operator
+
+#### [7.5] Separating Modules into Different Files
+1. src/garden/vegetables/mod.rs相較於src/garden/vegetables.rs是屬於舊式用法, 在同時編輯多個modules下會有檔名都是
+mod.rs不易分辨的情況
+
 ---
 
 ## [Chapter 10] Generic Types, Traits, and Lifetimes
