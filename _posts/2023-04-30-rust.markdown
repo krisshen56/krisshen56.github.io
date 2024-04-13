@@ -587,6 +587,89 @@ where
 
 ---
 
+## [Chapter 11] Writing Automated Tests
+
+### [11.1] How to Write Tests
+1. test function和一般function的差別在於prototype前有`#[test]` attribute
+聲明其是test function. test module也可以有一般function輔助test function
+2. 使用cargo建立一個新的library會自動產生test module和test function,
+可以做為template開發相關測試
+3. test function內如果發生panic, 就會被test runner視為failed. `assert!`
+macro的argument如果是false, 會呼叫`panic!` macro讓test failed.
+4. `assert_eq!`和`assert_ne!` macro分別利用`==`, `!=`operators比較left argument
+和right argument, 且assertion failure時會利用debug formatting印出argument值,
+所以要比較的兩個值的type必須實作`PartialEq`和`Debug` traits.
+通常都是在struct或enum前一行聲明`#[derive(PartialEq, Debug)]`即可
+5. `assert!`, `assert_eq!`和`assert_ne!` macro在必要的argument後的argument都是
+`format!` macro的argument, 可以用來客制化failed messages.
+6. 如果要測試code有沒有在例外情況產生panic, 可以在test function前加上
+`#[should_panic]` attribute, test runner的邏輯就會反過來.
+7. 一般都是使用panic來測試failed的情況, 但test function也可以回傳`Result<T, E>`.
+好處是可以使用`?` operator讓測試code直接回傳`Err`, 但此test function就不能聲明為
+`#[should_panic]`
+
+### [11.2] Controlling How Tests Are Run
+1. 執行`cargo test`時command line options可以傳給cargo或是test binary. 兩者間的options用`--`分開
+	```bash
+	$ cargo test --help     # --help對象是cargo
+	$ cargo test -- --help  # --help對象是test binary
+	```
+2. 預設是multi-threads同時執行多個tests, 可以使用`--test-threads`限制產生的threads數目.
+	```bash
+	$ cargo test -- --test-threads=1
+	```
+3. test function的stdout輸出預設只有failed test才會出現, passed test的stdout輸出會被Rust
+test library截取, 可以使用`--show-output`強制打開
+	```bash
+	$ cargo test -- --show-output
+	```
+4. `cargo test`後面可以接test name的名稱filter要執行的tests, 要注意的是名稱的match可以是partial.
+	```bash
+	# 執行了tests::add_three_and_two和tests::add_two_and_two
+	$ cargo test add
+	```
+5. 有些tests執行時間較長, 不希望這些tests在每次呼叫`cargo test`都執行, 可以在test
+function前聲明`#[ignore]`
+	```bash
+	$ cargo test -- --ignored         # 只執行ignore test
+	$ cargo test -- --include-ignored # 執行所有test
+	```
+
+### [11.3] Test Organization
+1. Rust社群認為test可以分為二種:
+	- unit test: 單個module內的test, 可以測試private API
+	- integration test: 多個modules間的整合測試, 只能測試module的public API
+2. unit test通常以tests submodule出現在要測試的code的檔案內, module前聲明
+`#[cfg(test)]`表示只有在`cargo test`時才會編譯. 因為是submodule,
+所以可以測試module的private API
+3. integration test會放在project根目錄下的tests資料夾,
+資料夾下每個檔案都是獨立的crate, 和之前src資料夾的module tree架構不一致.
+如要建立submodule共享common code, 要使用舊式的mod.rs方式定義submodule
+	```rust
+	// the project root directory is adder
+
+	// in src/lib.rs
+	pub fn add_two(a: i32) -> i32 {
+		a + 2
+	}
+	// in tests/common/mod.rs
+	pub fn setup() {
+		// setup code specific to your library's tests would go here
+	}
+	// in tests/integration_test.rs
+	use adder;
+	mod common; // common is submodule
+	#[test]
+	fn it_adds_two() {
+		common::setup();
+		assert_eq!(4, adder::add_two(2));
+	}
+	```
+4. 只有binary crate的package無法做integration test, 因為binary
+crate的function無法export至外部使用
+
+---
+
 ## [Chapter 12] An I/O Project: Building a Command Line Program
 
 ### [12.1] Accepting Command Line Arguments
