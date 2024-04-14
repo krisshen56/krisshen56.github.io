@@ -440,6 +440,64 @@ mod.rs不易分辨的情況
 
 ---
 
+## [Chapter 8] Common Collections
+
+#### [8.1] Storing Lists of Values with Vectors
+1. 建立新的vector: 直接宣告vector的type或是讓compiler從push的值推導
+	```rust
+    let v: Vec<i32> = Vec::new();
+	let mut v = Vec::new();
+    v.push(5);
+	```
+2. Rust提供可以直接初始化vector elements的macro `vec!`
+	```rust
+    let v = vec![1, 2, 3];
+	```
+3. 存取vector的element有二種方式:
+	- indexing the element directly: `&v[i]`, out of range時發生panic
+	- get method with index: `v.get(i)`回傳`Option<&T>`
+
+#### [8.3] Storing Keys with Associated Values in Hash Maps
+1. 使用HashMap要先`use std::collections::HashMap;`, 用insert method增加element到HashMap
+	```rust
+    use std::collections::HashMap;
+
+    let mut scores = HashMap::new();
+
+    scores.insert(String::from("Blue"), 10);
+    scores.insert(String::from("Yellow"), 50);
+	```
+2. 用get method取得對應key的value, 回傳值是`Option<&T>`,
+可以用Option的copied method轉成`Option<T>`
+	```rust
+    let team_name = String::from("Blue");
+    let score = scores.get(&team_name).copied().unwrap_or(0);
+	```
+3. 如果HashMap裡已有key, 之後的insert會overwrite之前的value
+	```rust
+	let mut scores = HashMap::new();
+
+	// empty
+	scores.insert(String::from("Blue"), 10);
+	// now {"Blue": 10}
+    scores.insert(String::from("Blue"), 25);
+	// now {"Blue": 25}
+	```
+4. entry method加上Entry的or_insert可以保留舊值或利用舊值更新新值
+	```rust
+	let mut scores = HashMap::new();
+
+	// empty
+	scores.insert(String::from("Blue"), 10);
+	// now {"Blue": 10}
+    scores.entry(String::from("Blue")).or_insert(50);
+	// still {"Blue": 10}
+	scores.entry(String::from("Blue")).or_insert(50) *= 2;
+	// now {"Blue": 20}
+	```
+
+---
+
 ## [Chapter 10] Generic Types, Traits, and Lifetimes
 x, y都是`&i32`, x op y(op是relative operator == > <)不是比較address, 而是比較reference的值,
 只有符合std::cmp::PartialOrd的type才支援
