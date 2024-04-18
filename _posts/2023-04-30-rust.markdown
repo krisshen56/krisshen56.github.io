@@ -498,6 +498,96 @@ mod.rs不易分辨的情況
 
 ---
 
+## [Chapter 9] Error Handling
+- Rust將error分成二類:
+	- recoverable: error type為`Result<T, E>`, 例如找不到檔案
+	- unrecoverable: 用`panic!` macro中止程式執行, 例如存取超過array界限的memory
+
+#### [9.1] Unrecoverable Errors with panic!
+1. 有二種方式可以造成程式panic:
+	- 程式執行了某些會造成panic的action, 例如: array存取越界
+	- 直接呼叫`panic!` macro
+2. 當panic發生時, 程式會開始unwinding. 如果要減少binary大小, 可以在Cargo.toml檔的`[profile]`
+section加入`panic='abort'`讓程式panic時直接abort
+3. 當panic發生時, 印出backtrace:
+	```bash
+	$ RUST_BACKTRACE=1 cargo run
+	```
+
+#### [9.2] Recoverable Errors with Result
+1. 通常處理`Result<T, E>`會有好幾層的match expression, 可以利用`unwrap_or_else`讓code看起來更精簡
+	```rust
+	let greeting_file = File::open("hello.txt").unwrap_or_else(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            File::create("hello.txt").unwrap_or_else(|error| {
+                panic!("Problem creating the file: {:?}", error);
+            })
+        } else {
+            panic!("Problem opening the file: {:?}", error);
+        }
+    });
+	```
+2. `unwrap`和`expect`兩者在Err case時都會panic, 差別在於`expect`可以指定panic的錯誤訊息.
+3. Propagating Errors: 在function內遇到errors時, 不即時處理而是直接回傳errors至caller,
+由caller決定如何處理.
+4. Rust提供了`?` operator方便處理propagating errors, error在回傳前會經過from
+function轉成return type定義的error type. `?`可以chaining method使用讓code更精簡.
+	```rust
+	fn read_username_from_file() -> Result<String, io::Error> {
+		let mut username = String::new();
+
+		File::open("hello.txt")?.read_to_string(&mut username)?;
+
+		Ok(username)
+	}
+	```
+5. `?`的原理是遇到error時就early return error, 所以也可以套用在`Option<T>`,
+只是early return `None`
+	```rust
+	fn last_char_of_first_line(text: &str) -> Option<char> {
+		text.lines().next()?.chars().last()
+	}
+	```
+6. main function預設的回傳type是`()`, 但也可以回傳`Result<(), Box<dyn Error>>`
+
+#### [9.3] To panic! or Not to panic!
+1. 在以下的情況, 遇到error直接panic較為合適
+	- examples: 過多的error handling code會讓example要展示的concept不明顯
+	- prototype code: 在準備好處理error handling前, 使用unwrap或expect清楚標示之後可以改進的地方
+	- tests: tests就是利用程式的panic來做為判斷failure case的依據
+2. 有些編譯器無法分辨, 但人可以一眼看穿不會有failure情況產生的地方也適合用unwrap或expect
+	```rust
+	use std::net::IpAddr;
+
+    let home: IpAddr = "127.0.0.1"
+        .parse()
+        .expect("Hardcoded IP address should be valid");
+	```
+3. 可以利用Rust的type checking來做validation, 避免在很多地方做重複的error check.
+例如: Guess值只能在1~100內, 將其封裝成struct type, 就可以保證其值一定都在範圍內,
+且不會被任意修改成非法的值
+	```rust
+	pub struct Guess {
+		value: i32,
+	}
+
+	impl Guess {
+		pub fn new(value: i32) -> Guess {
+			if value < 1 || value > 100 {
+				panic!("Guess value must be between 1 and 100, got {}.", value);
+			}
+
+			Guess { value }
+		}
+
+		pub fn value(&self) -> i32 {
+			self.value
+		}
+	}
+	```
+
+---
+
 ## [Chapter 10] Generic Types, Traits, and Lifetimes
 x, y都是`&i32`, x op y(op是relative operator == > <)不是比較address, 而是比較reference的值,
 只有符合std::cmp::PartialOrd的type才支援
