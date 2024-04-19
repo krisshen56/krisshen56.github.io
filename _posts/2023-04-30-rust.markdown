@@ -457,6 +457,68 @@ mod.rs不易分辨的情況
 	- indexing the element directly: `&v[i]`, out of range時發生panic
 	- get method with index: `v.get(i)`回傳`Option<&T>`
 
+#### [8.2] Storing UTF-8 Encoded Text with Strings
+1. Rust core language支援的string type只有`str`(string slice),
+`String`是standard library提供的growable, mutable, owned的UTF-8 encoded string type
+2. 建立`String`有幾種方式:
+	```rust
+	// create empty string
+    let mut s = String::new();
+	// create a string initialized with string literals
+	let s = "initial contents".to_string();
+	// same as above, different way
+    let s = String::from("initial contents");
+	```
+3. `push_str` method用來append string slice, `push` method則是append character
+	```rust
+    let mut s1 = String::from("foo");
+    let s2 = "bar";
+    s1.push_str(s2);
+	// s2 is still valid after push_str
+    let mut s = String::from("lo");
+    s.push('l');
+	```
+4. 串接二個String可以使用`+` operator, 要注意的是`+`左邊是`String` type,
+右邊是`&str` type
+	```rust
+    let s1 = String::from("Hello, ");
+    let s2 = String::from("world!");
+	// is equilvalent to s1.add(&s2)
+	// the signature of add function is
+	// fn add(self, s: &str) -> String {
+    let s3 = s1 + &s2; // note s1 has been moved here and can no longer be used
+	```
+5. 使用多個`+`串接String看起來不是很直覺, 可以使用`format!`讓意圖更明顯
+	```rust
+    let s1 = String::from("tic");
+    let s2 = String::from("tac");
+    let s3 = String::from("toe");
+	// is equilvalent to
+	// let s = s1 + "-" + &s2 + "-" + &s3;
+    let s = format!("{s1}-{s2}-{s3}");
+	```
+6. `String`內部實作是`Vec<u8>`, 因為UTF-8字元可能是multiple bytes,
+利用indexing回傳單一byte值並不符合使用者意圖, 所以`String`不支援indexing
+	```rust
+	let s1 = String::from("hello");
+	// error[E0277]: the type `String` cannot be indexed by `{integer}`
+    // let h = s1[0];
+	```
+7. 以印地語字串為例, 在Rust中可以用三種方式解讀: bytes, scalar values(chars),
+grapheme clusters(letters), 這也是`String`不支援indexing的另一個原因
+8. 用`for` loop iterate `String`有二種方式: by bytes or characters.
+(by letters須透過external crate, 例如unicode-segmentation)
+	```rust
+	// by chars
+	for c in "Зд".chars() {
+		println!("{c}");
+	}
+	// by bytes
+	for b in "Зд".bytes() {
+		println!("{b}");
+	}
+	```
+
 #### [8.3] Storing Keys with Associated Values in Hash Maps
 1. 使用HashMap要先`use std::collections::HashMap;`, 用insert method增加element到HashMap
 	```rust
